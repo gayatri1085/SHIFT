@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHIFT — Fat Distribution Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --beige:#F5F0E6;--beige2:#EDE5D8;--brown-dark:#2E1A17;--brown-mid:#7A4F3A;
+  --brown-light:#C49A6C;--accent:#D4845A;--accent2:#A0522D;
+  --card:rgba(255,249,242,0.72);--border:rgba(196,154,108,0.28);
+  --vis:#E8745A;--sub:#5A9EA0;--glu:#D4A55A;--ect:#C05A80;
+  --glass:rgba(255,249,242,0.55);--glass-border:rgba(196,154,108,0.22);
+}
+html{scroll-behavior:smooth}
+body{background:var(--beige);color:var(--brown-dark);font-family:'DM Sans',sans-serif;overflow-x:hidden;cursor:default}
+
+/* CUSTOM SCROLLBAR */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--beige2)}
+::-webkit-scrollbar-thumb{background:var(--brown-light);border-radius:10px}
+
+/* ===== PARALLAX HERO ===== */
+.hero{position:relative;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,#E8C9A0 0%,#F5F0E6 40%,#D4B896 80%,#8B5E3C 100%);z-index:0;will-change:transform}
+.hero-grain{position:absolute;inset:0;z-index:1;opacity:0.04;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");background-size:200px}
+.hero-orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.35;animation:orbFloat 8s ease-in-out infinite alternate}
+.orb1{width:400px;height:400px;background:#C49A6C;top:-100px;left:-100px;animation-delay:0s}
+.orb2{width:300px;height:300px;background:#D4845A;bottom:-80px;right:-60px;animation-delay:-4s}
+.orb3{width:200px;height:200px;background:#A0522D;top:40%;left:60%;animation-delay:-2s}
+@keyframes orbFloat{from{transform:translate(0,0) scale(1)}to{transform:translate(30px,20px) scale(1.08)}}
+
+.hero-content{position:relative;z-index:2;text-align:center;padding:2rem}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,249,242,0.6);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:30px;padding:8px 18px;font-size:0.75rem;font-weight:500;color:var(--brown-mid);margin-bottom:2rem;letter-spacing:0.06em;text-transform:uppercase}
+.hero-badge span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+.hero-h1{font-family:'Playfair Display',serif;font-size:clamp(2.8rem,6vw,5rem);line-height:1.1;color:var(--brown-dark);margin-bottom:1.2rem;opacity:0;transform:translateY(30px);transition:all 1s cubic-bezier(0.16,1,0.3,1)}
+.hero-h1.visible{opacity:1;transform:translateY(0)}
+.hero-h1 em{font-style:italic;color:var(--accent2)}
+.hero-sub{font-size:1.1rem;color:var(--brown-mid);max-width:520px;line-height:1.7;margin:0 auto 2.5rem;opacity:0;transform:translateY(20px);transition:all 1s cubic-bezier(0.16,1,0.3,1) 0.2s}
+.hero-sub.visible{opacity:1;transform:translateY(0)}
+.hero-cta{display:inline-flex;align-items:center;gap:10px;background:var(--brown-dark);color:#FFF9F2;padding:14px 32px;border-radius:50px;font-size:0.9rem;font-weight:500;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.3s;opacity:0;transform:translateY(20px);transition:all 1s cubic-bezier(0.16,1,0.3,1) 0.4s, background 0.2s}
+.hero-cta.visible{opacity:1;transform:translateY(0)}
+.hero-cta:hover{background:var(--accent2);transform:translateY(-2px)!important;box-shadow:0 8px 30px rgba(160,82,45,0.35)}
+.hero-scroll{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--brown-mid);font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase}
+.scroll-line{width:1px;height:40px;background:linear-gradient(to bottom,var(--brown-light),transparent);animation:scrollAnim 2s ease-in-out infinite}
+@keyframes scrollAnim{0%,100%{opacity:0.4;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.2)}}
+
+/* ===== STORY SECTION ===== */
+.story{padding:100px 2rem;background:linear-gradient(180deg,var(--beige) 0%,#EDE0CE 100%);position:relative;overflow:hidden}
+.story-grid{display:grid;grid-template-columns:1fr 1fr;gap:6rem;max-width:900px;margin:0 auto;align-items:center}
+.story-text{opacity:0;transform:translateX(-40px);transition:all 0.9s cubic-bezier(0.16,1,0.3,1)}
+.story-text.visible{opacity:1;transform:translateX(0)}
+.story-label{font-size:0.72rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:1rem}
+.story-h2{font-family:'Playfair Display',serif;font-size:2.4rem;line-height:1.2;color:var(--brown-dark);margin-bottom:1.2rem}
+.story-p{font-size:0.95rem;line-height:1.8;color:var(--brown-mid)}
+.story-bodies{display:flex;gap:2rem;justify-content:center;opacity:0;transform:translateX(40px);transition:all 0.9s cubic-bezier(0.16,1,0.3,1) 0.2s}
+.story-bodies.visible{opacity:1;transform:translateX(0)}
+.story-body-wrap{display:flex;flex-direction:column;align-items:center;gap:0.6rem}
+.story-body-label{font-size:0.75rem;font-weight:500;color:var(--brown-mid);text-align:center}
+.story-canvas{border-radius:12px;background:rgba(240,232,220,0.6);border:1px solid var(--border)}
+
+/* ===== SIMULATOR SECTION ===== */
+.sim-section{padding:0 0 80px;background:#EDE0CE}
+.sim-header{text-align:center;padding:60px 2rem 40px;opacity:0;transform:translateY(30px);transition:all 0.8s cubic-bezier(0.16,1,0.3,1)}
+.sim-header.visible{opacity:1;transform:translateY(0)}
+.sim-header h2{font-family:'Playfair Display',serif;font-size:2.2rem;color:var(--brown-dark);margin-bottom:0.5rem}
+.sim-header p{color:var(--brown-mid);font-size:0.9rem}
+
+/* MAIN APP */
+.app-shell{display:grid;grid-template-columns:340px 1fr;max-width:1200px;margin:0 auto;gap:0;border-radius:20px;overflow:hidden;border:1px solid var(--border);box-shadow:0 30px 80px rgba(75,46,43,0.15);opacity:0;transform:translateY(50px) scale(0.98);transition:all 1s cubic-bezier(0.16,1,0.3,1) 0.2s}
+.app-shell.visible{opacity:1;transform:translateY(0) scale(1)}
+.sidebar{background:rgba(255,249,242,0.82);backdrop-filter:blur(20px);border-right:1px solid var(--border);padding:1.5rem;overflow-y:auto;max-height:88vh}
+.main-pane{background:rgba(245,240,230,0.7);backdrop-filter:blur(10px);padding:1.5rem;overflow-y:auto;max-height:88vh}
+
+/* GLASS CARDS */
+.card{background:rgba(255,249,242,0.75);backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:16px;padding:1.25rem;margin-bottom:1rem;box-shadow:0 4px 20px rgba(75,46,43,0.07),inset 0 1px 0 rgba(255,255,255,0.6);transition:box-shadow 0.3s,transform 0.3s}
+.card:hover{box-shadow:0 8px 32px rgba(75,46,43,0.12),inset 0 1px 0 rgba(255,255,255,0.6);transform:translateY(-1px)}
+.card-title{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:600;color:var(--brown-dark);margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem}
+
+/* FORM ELEMENTS */
+label{display:block;font-size:0.72rem;font-weight:500;color:var(--brown-mid);margin-bottom:4px;margin-top:10px;letter-spacing:0.04em;text-transform:uppercase}
+select{width:100%;background:rgba(255,245,236,0.8);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:0.83rem;color:var(--brown-dark);outline:none;transition:border 0.2s,box-shadow 0.2s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237A4F3A'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(212,132,90,0.15)}
+
+/* RANGE SLIDERS */
+.slider-wrap{position:relative;margin-bottom:4px}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--beige2);outline:none;cursor:pointer;transition:opacity 0.2s}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid white;box-shadow:0 2px 8px rgba(212,132,90,0.4);cursor:grab;transition:transform 0.15s,box-shadow 0.15s}
+input[type=range]::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2);box-shadow:0 4px 16px rgba(212,132,90,0.5)}
+.bubble{position:absolute;top:-28px;background:var(--brown-dark);color:#FFF9F2;font-size:0.7rem;padding:3px 8px;border-radius:6px;pointer-events:none;opacity:0;transition:opacity 0.2s;white-space:nowrap;transform:translateX(-50%);z-index:10}
+.bubble::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--brown-dark)}
+.val-display{font-size:0.78rem;color:var(--accent);font-weight:500;float:right}
+
+/* BUTTONS */
+.btn-group{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.pill-btn{padding:8px 4px;border:1px solid var(--border);border-radius:10px;background:rgba(255,249,242,0.6);font-family:'DM Sans',sans-serif;font-size:0.75rem;cursor:pointer;transition:all 0.25s;color:var(--brown-mid);position:relative;overflow:hidden}
+.pill-btn::after{content:'';position:absolute;inset:0;background:var(--accent);transform:scale(0);border-radius:50%;opacity:0;transition:transform 0.4s,opacity 0.4s}
+.pill-btn:active::after{transform:scale(2.5);opacity:0.15}
+.pill-btn.active{background:var(--brown-dark);color:#FFF9F2;border-color:var(--brown-dark);box-shadow:0 4px 14px rgba(46,26,23,0.25)}
+
+/* TIME BUTTONS */
+.time-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.2rem}
+.time-btn{padding:12px;border:1.5px solid var(--border);border-radius:12px;background:rgba(255,249,242,0.6);backdrop-filter:blur(8px);font-family:'Playfair Display',serif;font-size:0.95rem;cursor:pointer;transition:all 0.25s;color:var(--brown-mid);text-align:center;position:relative;overflow:hidden}
+.time-btn.active{background:var(--brown-dark);color:#FFF9F2;border-color:var(--brown-dark);box-shadow:0 6px 20px rgba(46,26,23,0.3)}
+.time-btn:hover:not(.active){background:rgba(212,132,90,0.1);border-color:var(--accent)}
+
+/* COMPARE TOGGLE */
+.compare-toggle{display:flex;align-items:center;gap:12px;background:rgba(255,249,242,0.7);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:12px;padding:12px 16px;margin-bottom:1.2rem;cursor:pointer;transition:all 0.3s;box-shadow:0 2px 10px rgba(75,46,43,0.06)}
+.compare-toggle:hover{box-shadow:0 4px 20px rgba(75,46,43,0.1)}
+.toggle-pill{width:44px;height:24px;border-radius:12px;background:var(--beige2);border:1px solid var(--border);position:relative;transition:background 0.3s,border 0.3s;flex-shrink:0}
+.toggle-pill.on{background:var(--accent);border-color:var(--accent)}
+.toggle-pill::after{content:'';width:18px;height:18px;border-radius:50%;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.2);position:absolute;top:2px;left:2px;transition:left 0.25s cubic-bezier(0.34,1.56,0.64,1)}
+.toggle-pill.on::after{left:22px}
+
+/* SIM AREA */
+.sim-area{display:flex;gap:1.5rem;justify-content:center;align-items:flex-start;margin-bottom:1.5rem}
+.body-container{display:flex;flex-direction:column;align-items:center;gap:8px}
+.person-label{font-family:'Playfair Display',serif;font-size:0.85rem;color:var(--brown-mid);font-weight:600;text-align:center}
+.body-canvas{border-radius:14px;border:1px solid var(--border);box-shadow:0 8px 32px rgba(75,46,43,0.1);transition:box-shadow 0.3s}
+.body-canvas:hover{box-shadow:0 12px 48px rgba(75,46,43,0.18)}
+.canvas-bg{background:linear-gradient(160deg,#F2E8DC 0%,#E8D8C4 100%)}
+
+/* OUTPUT */
+.output-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.out-card{background:rgba(245,240,230,0.7);backdrop-filter:blur(8px);border-radius:12px;padding:1rem;border:1px solid var(--border)}
+.out-label{font-size:0.67rem;font-weight:500;color:var(--brown-mid);text-transform:uppercase;letter-spacing:0.07em}
+.out-val{font-size:1.5rem;font-weight:600;font-family:'Playfair Display',serif;color:var(--brown-dark);margin-top:3px;transition:all 0.5s cubic-bezier(0.16,1,0.3,1)}
+.out-sub{font-size:0.7rem;color:var(--brown-mid);margin-top:1px}
+
+/* FAT BARS */
+.fat-bar-row{margin-bottom:12px}
+.fat-bar-label{display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:5px;align-items:center}
+.fat-bar-track{height:8px;border-radius:4px;background:rgba(196,154,108,0.15);overflow:hidden}
+.fat-bar-fill{height:100%;border-radius:4px;transition:width 0.8s cubic-bezier(0.16,1,0.3,1)}
+
+/* RISK */
+.risk-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:20px;font-size:0.78rem;font-weight:500;margin-top:8px}
+.risk-low{background:rgba(107,174,117,0.15);color:#2D7A3A;border:1px solid rgba(107,174,117,0.3)}
+.risk-mod{background:rgba(232,180,90,0.15);color:#8A6020;border:1px solid rgba(232,180,90,0.3)}
+.risk-high{background:rgba(232,90,90,0.15);color:#8A2020;border:1px solid rgba(232,90,90,0.3)}
+
+/* INSIGHT TYPING */
+.insight-card{background:rgba(212,132,90,0.08);border:1px solid rgba(212,132,90,0.25);border-radius:14px;padding:1.25rem;backdrop-filter:blur(8px)}
+.insight-text{font-size:0.85rem;line-height:1.8;color:var(--brown-mid)}
+.insight-text .hl{color:var(--accent2);font-weight:500;background:rgba(212,132,90,0.12);padding:1px 5px;border-radius:4px}
+.cursor{display:inline-block;width:2px;height:14px;background:var(--accent);animation:blink 1s infinite;vertical-align:middle;margin-left:1px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* TABS */
+.tab-bar{display:flex;gap:8px;margin-bottom:1rem}
+.tab-btn{padding:8px 18px;border-radius:10px;border:1px solid var(--border);background:rgba(255,249,242,0.6);font-family:'DM Sans',sans-serif;font-size:0.8rem;cursor:pointer;color:var(--brown-mid);transition:all 0.2s;backdrop-filter:blur(8px)}
+.tab-btn.active{background:var(--brown-dark);color:#FFF9F2;border-color:var(--brown-dark)}
+
+/* TOOLTIP */
+.tooltip-wrap{position:relative;display:inline-block}
+.tooltip-icon{width:15px;height:15px;border-radius:50%;background:rgba(196,154,108,0.2);color:var(--brown-mid);font-size:9px;display:inline-flex;align-items:center;justify-content:center;cursor:help;vertical-align:middle;margin-left:4px;border:1px solid var(--border)}
+.tooltip-box{display:none;position:absolute;bottom:125%;left:50%;transform:translateX(-50%);background:rgba(46,26,23,0.92);backdrop-filter:blur(8px);color:#FFF9F2;font-size:0.7rem;padding:8px 12px;border-radius:8px;z-index:100;width:180px;line-height:1.5;pointer-events:none}
+.tooltip-wrap:hover .tooltip-box{display:block}
+
+/* PULSE ANIMATION */
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:0.8}}
+@keyframes fatPulse{0%{box-shadow:0 0 0 0 rgba(232,116,90,0.4)}70%{box-shadow:0 0 0 12px rgba(232,116,90,0)}100%{box-shadow:0 0 0 0 rgba(232,116,90,0)}}
+.pulsing{animation:fatPulse 0.8s ease-out}
+@keyframes pulseRing{0%{transform:scale(1);opacity:0.5}100%{transform:scale(2.5);opacity:0}}
+
+/* HEATMAP OVERLAY LABELS */
+.heatmap-label{font-size:0.7rem;color:var(--brown-mid);text-align:center;margin-top:4px}
+
+/* FAT TYPE MINI CARDS */
+.fat-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.fat-type-card{border-radius:10px;padding:0.75rem;border:1px solid var(--border);background:rgba(245,240,230,0.6);backdrop-filter:blur(8px);transition:all 0.2s;cursor:default}
+.fat-type-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(75,46,43,0.1)}
+
+/* SCROLL INDICATOR for compare */
+.diff-legend{display:flex;gap:12px;margin-top:8px;justify-content:center}
+.diff-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .app-shell{grid-template-columns:1fr}
+  .sidebar,.main-pane{max-height:none}
+  .story-grid{grid-template-columns:1fr;gap:3rem}
+  .story-bodies{display:none}
+}
+
+/* SECTION TRANSITIONS */
+.fade-in{opacity:0;transform:translateY(25px);transition:all 0.8s cubic-bezier(0.16,1,0.3,1)}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<section class="hero" id="hero">
+  <div class="hero-bg" id="hero-bg"></div>
+  <div class="hero-grain"></div>
+  <div class="hero-orb orb1"></div>
+  <div class="hero-orb orb2"></div>
+  <div class="hero-orb orb3"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span></span>SHIFT · Genetic Fat Simulator</div>
+    <h1 class="hero-h1">Your body doesn't<br>store fat <em>randomly.</em></h1>
+    <p class="hero-sub">Genetics, lifestyle, and time shape exactly where fat accumulates — region by region. Discover your personalized trajectory.</p>
+    <button class="hero-cta" onclick="document.getElementById('sim-section').scrollIntoView({behavior:'smooth'})">
+      Explore Your Body ↓
+    </button>
+  </div>
+  <div class="hero-scroll"><div class="scroll-line"></div>SCROLL</div>
+</section>
+
+<!-- ===== STORY SECTION ===== -->
+<section class="story" id="story">
+  <div class="story-grid">
+    <div class="story-text">
+      <div class="story-label">The Science</div>
+      <h2 class="story-h2">Same lifestyle.<br>Different bodies.</h2>
+      <p class="story-p">Two people can follow identical diets and exercise routines for months — and end up with completely different fat distributions. The reason lies in genetics. Your family history encodes where fat is routed: belly, thighs, under the skin, or deep around organs.</p>
+      <p class="story-p" style="margin-top:1rem">SHIFT models this using your family background, body measurements, and lifestyle to forecast your personal fat trajectory — region by region — before it happens.</p>
+    </div>
+    <div class="story-bodies">
+      <div class="story-body-wrap">
+        <canvas id="story-canvas-a" class="story-canvas" width="130" height="220"></canvas>
+        <div class="story-body-label">High visceral<br>genetics</div>
+      </div>
+      <div class="story-body-wrap">
+        <canvas id="story-canvas-b" class="story-canvas" width="130" height="220"></canvas>
+        <div class="story-body-label">High gluteofemoral<br>genetics</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SIMULATOR ===== -->
+<section class="sim-section" id="sim-section">
+  <div class="sim-header">
+    <h2>Your Personalized Simulator</h2>
+    <p>Adjust your genetics, body profile, and lifestyle to see your fat trajectory</p>
+  </div>
+
+  <div style="padding:0 1.5rem">
+  <div class="app-shell" id="app-shell">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+      <!-- GENETICS -->
+      <div class="card">
+        <div class="card-title">🧬 Genetic Background</div>
+        <div class="fat-type-grid">
+          <div class="fat-type-card"><div style="font-size:1.2rem;margin-bottom:3px">🔴</div><div style="font-size:0.76rem;font-weight:500;color:var(--vis)">Visceral</div><div style="font-size:0.68rem;color:var(--brown-mid);line-height:1.4;margin-top:2px">Deep belly, organ fat. Highest health risk.</div></div>
+          <div class="fat-type-card"><div style="font-size:1.2rem;margin-bottom:3px">🔵</div><div style="font-size:0.76rem;font-weight:500;color:var(--sub)">Subcutaneous</div><div style="font-size:0.68rem;color:var(--brown-mid);line-height:1.4;margin-top:2px">Under skin. Pinchable. Lower risk.</div></div>
+          <div class="fat-type-card"><div style="font-size:1.2rem;margin-bottom:3px">🟡</div><div style="font-size:0.76rem;font-weight:500;color:var(--glu)">Gluteofemoral</div><div style="font-size:0.68rem;color:var(--brown-mid);line-height:1.4;margin-top:2px">Hips & thighs. Protective role.</div></div>
+          <div class="fat-type-card"><div style="font-size:1.2rem;margin-bottom:3px">🟣</div><div style="font-size:0.76rem;font-weight:500;color:var(--ect)">Ectopic</div><div style="font-size:0.68rem;color:var(--brown-mid);line-height:1.4;margin-top:2px">Liver/muscle fat. Invisible danger.</div></div>
+        </div>
+
+        <label>Father's fat type <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Paternal fat type contributes ~30% to your genetic routing weight.</span></span></label>
+        <select id="father" onchange="onGeneChange('father')">
+          <option value="subcutaneous">🔵 Subcutaneous (under skin)</option>
+          <option value="visceral">🔴 Visceral (belly/organs)</option>
+          <option value="gluteofemoral">🟡 Gluteofemoral (hips/thighs)</option>
+          <option value="ectopic">🟣 Ectopic (liver/muscle)</option>
+        </select>
+
+        <label>Mother's fat type <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-box">Maternal lineage determines lower-body vs abdominal fat tendency.</span></span></label>
+        <select id="mother" onchange="onGeneChange('mother')">
+          <option value="gluteofemoral">🟡 Gluteofemoral (hips/thighs)</option>
+          <option value="visceral">🔴 Visceral (belly/organs)</option>
+          <option value="subcutaneous">🔵 Subcutaneous (under skin)</option>
+          <option value="ectopic">🟣 Ectopic (liver/muscle)</option>
+        </select>
+
+        <label>Grandfather's fat type</label>
+        <select id="grandfather" onchange="onGeneChange('grandfather')">
+          <option value="visceral">🔴 Visceral (belly/organs)</option>
+          <option value="subcutaneous">🔵 Subcutaneous (under skin)</option>
+          <option value="gluteofemoral">🟡 Gluteofemoral (hips/thighs)</option>
+          <option value="ectopic">🟣 Ectopic (liver/muscle)</option>
+        </select>
+
+        <label>Grandmother's fat type</label>
+        <select id="grandmother" onchange="onGeneChange('grandmother')">
+          <option value="subcutaneous">🔵 Subcutaneous (under skin)</option>
+          <option value="visceral">🔴 Visceral (belly/organs)</option>
+          <option value="gluteofemoral">🟡 Gluteofemoral (hips/thighs)</option>
+          <option value="ectopic">🟣 Ectopic (liver/muscle)</option>
+        </select>
+      </div>
+
+      <!-- BODY PROFILE -->
+      <div class="card">
+        <div class="card-title">🧍 Body Profile</div>
+
+        <label>Height <span class="val-display" id="height-val">170 cm</span></label>
+        <div class="slider-wrap">
+          <div class="bubble" id="height-bubble">170 cm</div>
+          <input type="range" id="height" min="140" max="210" value="170" step="1">
+        </div>
+
+        <label>Weight <span class="val-display" id="weight-val">70 kg</span></label>
+        <div class="slider-wrap">
+          <div class="bubble" id="weight-bubble">70 kg</div>
+          <input type="range" id="weight" min="40" max="160" value="70" step="1">
+        </div>
+
+        <label>Age <span class="val-display" id="age-val">30 yrs</span></label>
+        <div class="slider-wrap">
+          <div class="bubble" id="age-bubble">30 yrs</div>
+          <input type="range" id="age" min="18" max="75" value="30" step="1">
+        </div>
+
+        <label>Gender</label>
+        <div class="btn-group">
+          <button class="pill-btn active" id="g-male" onclick="setGender('male')">Male</button>
+          <button class="pill-btn" id="g-female" onclick="setGender('female')">Female</button>
+          <button class="pill-btn" id="g-neutral" onclick="setGender('neutral')">Neutral</button>
+        </div>
+      </div>
+
+      <!-- LIFESTYLE -->
+      <div class="card">
+        <div class="card-title">🍔 Daily Intake & Lifestyle</div>
+
+        <label>Daily calories <span class="val-display" id="cal-val">2200 kcal</span></label>
+        <div class="slider-wrap">
+          <div class="bubble" id="calories-bubble">2200 kcal</div>
+          <input type="range" id="calories" min="1200" max="4000" value="2200" step="50">
+        </div>
+
+        <label>Fat intake <span class="val-display" id="fatintake-val">80 g</span></label>
+        <div class="slider-wrap">
+          <div class="bubble" id="fatintake-bubble">80 g</div>
+          <input type="range" id="fatintake" min="20" max="200" value="80" step="5">
+        </div>
+
+        <label>Activity level</label>
+        <div class="btn-group">
+          <button class="pill-btn" id="act-low" onclick="setActivity('low')">Low</button>
+          <button class="pill-btn active" id="act-moderate" onclick="setActivity('moderate')">Moderate</button>
+          <button class="pill-btn" id="act-high" onclick="setActivity('high')">High</button>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+
+    <!-- MAIN PANE -->
+    <div class="main-pane">
+
+      <!-- COMPARE TOGGLE -->
+      <div class="compare-toggle" onclick="toggleCompare()">
+        <div class="toggle-pill" id="compare-pill"></div>
+        <div>
+          <div style="font-size:0.88rem;font-weight:500;color:var(--brown-dark)">🔬 Compare Two Individuals</div>
+          <div style="font-size:0.72rem;color:var(--brown-mid)">Same diet · Different genetics · See the genetic effect</div>
+        </div>
+      </div>
+
+      <!-- TIME BUTTONS -->
+      <div class="time-btns">
+        <button class="time-btn active" onclick="setTime(3,this)">3 Weeks</button>
+        <button class="time-btn" onclick="setTime(6,this)">6 Weeks</button>
+        <button class="time-btn" onclick="setTime(8,this)">8 Weeks</button>
+      </div>
+
+      <!-- BODY CANVASES -->
+      <div class="sim-area" id="sim-area">
+        <div class="body-container">
+          <div class="person-label" id="label-a">Your Body</div>
+          <canvas id="canvas-a" class="body-canvas canvas-bg" width="220" height="340"></canvas>
+          <div class="heatmap-label" id="heatmap-label-a" style="display:none">Fat intensity map</div>
+        </div>
+        <div class="body-container" id="person-b-wrap" style="display:none;opacity:0;transition:opacity 0.5s,transform 0.5s;transform:translateX(20px)">
+          <div class="person-label">Person B — High Visceral Genetics</div>
+          <canvas id="canvas-b" class="body-canvas canvas-bg" width="220" height="340"></canvas>
+          <div class="heatmap-label">Fat intensity map</div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="setTab('output',this)">📊 Results</button>
+        <button class="tab-btn" onclick="setTab('guide',this)">🧠 Fat Guide</button>
+      </div>
+
+      <!-- OUTPUT TAB -->
+      <div id="tab-output">
+        <div class="output-grid">
+          <div class="out-card">
+            <div class="out-label">Total fat gained</div>
+            <div class="out-val" id="total-fat-a">—</div>
+            <div class="out-sub">kg over selected period</div>
+          </div>
+          <div class="out-card">
+            <div class="out-label">BMI estimate</div>
+            <div class="out-val" id="bmi-val">—</div>
+            <div class="out-sub">body mass index</div>
+          </div>
+        </div>
+
+        <div class="card" id="dist-card-a">
+          <div class="card-title">📈 Your Fat Distribution</div>
+          <div id="bars-a"></div>
+          <div id="risk-a"></div>
+        </div>
+
+        <div class="card" id="dist-card-b" style="display:none">
+          <div class="card-title">📈 Person B Distribution</div>
+          <div id="bars-b"></div>
+          <div id="risk-b"></div>
+        </div>
+
+        <div class="insight-card" id="compare-insight" style="display:none">
+          <div style="font-size:0.8rem;font-weight:500;color:var(--accent2);margin-bottom:8px">💡 Genetic Insight</div>
+          <div class="insight-text" id="insight-text"></div>
+        </div>
+      </div>
+
+      <!-- GUIDE TAB -->
+      <div id="tab-guide" style="display:none">
+        <div class="card">
+          <div class="card-title">🧠 Fat Compartment Guide</div>
+          <canvas id="guide-canvas" width="460" height="300" style="width:100%;border-radius:10px;background:rgba(240,232,220,0.5)"></canvas>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem">
+            <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.76rem"><span style="width:10px;height:10px;border-radius:50%;background:var(--vis);flex-shrink:0;margin-top:3px;display:inline-block"></span><span><b>Visceral</b> — Surrounds organs. Linked to diabetes & heart disease.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.76rem"><span style="width:10px;height:10px;border-radius:50%;background:var(--sub);flex-shrink:0;margin-top:3px;display:inline-block"></span><span><b>Subcutaneous</b> — Just under skin. Pinchable. Less dangerous.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.76rem"><span style="width:10px;height:10px;border-radius:50%;background:var(--glu);flex-shrink:0;margin-top:3px;display:inline-block"></span><span><b>Gluteofemoral</b> — Hips & thighs. Hormonally protective.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:8px;font-size:0.76rem"><span style="width:10px;height:10px;border-radius:50%;background:var(--ect);flex-shrink:0;margin-top:3px;display:inline-block"></span><span><b>Ectopic</b> — Liver/muscle. Often invisible but very dangerous.</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-pane -->
+  </div><!-- /app-shell -->
+  </div>
+
+</section>
+
+<script>
+// ===== STATE =====
+let state={
+  father:'subcutaneous',mother:'gluteofemoral',
+  grandfather:'visceral',grandmother:'subcutaneous',
+  height:170,weight:70,age:30,gender:'male',
+  calories:2200,fatintake:80,activity:'moderate',
+  weeks:3,compare:false
+};
+let animFrame=null;
+let currentDist={visceral:25,subcutaneous:40,gluteofemoral:25,ectopic:10};
+let targetDist={visceral:25,subcutaneous:40,gluteofemoral:25,ectopic:10};
+let animProgress=1;
+
+// ===== PARALLAX =====
+window.addEventListener('scroll',()=>{
+  const y=window.scrollY;
+  const bg=document.getElementById('hero-bg');
+  if(bg) bg.style.transform=`translateY(${y*0.4}px)`;
+  checkVisible();
+});
+
+function checkVisible(){
+  document.querySelectorAll('.fade-in,.story-text,.story-bodies,.sim-header,.app-shell,.hero-h1,.hero-sub,.hero-cta').forEach(el=>{
+    const r=el.getBoundingClientRect();
+    if(r.top<window.innerHeight*0.88) el.classList.add('visible');
+  });
+}
+
+// ===== SLIDERS WITH BUBBLE =====
+const sliderConfig=[
+  {id:'height',suffix:'cm',dispId:'height-val'},
+  {id:'weight',suffix:'kg',dispId:'weight-val'},
+  {id:'age',suffix:'yrs',dispId:'age-val'},
+  {id:'calories',suffix:'kcal',dispId:'cal-val'},
+  {id:'fatintake',suffix:'g',dispId:'fatintake-val'},
+];
+sliderConfig.forEach(({id,suffix,dispId})=>{
+  const el=document.getElementById(id);
+  const bubble=document.getElementById(id+'-bubble');
+  const disp=document.getElementById(dispId);
+  function update(){
+    const v=el.value;
+    state[id]=parseInt(v);
+    if(disp) disp.textContent=v+' '+suffix;
+    if(bubble){
+      const pct=(v-el.min)/(el.max-el.min);
+      const w=el.offsetWidth||200;
+      bubble.style.left=(pct*(w-18)+9)+'px';
+      bubble.textContent=v+' '+suffix;
+    }
+    simulate();
+  }
+  el.addEventListener('input',update);
+  el.addEventListener('mouseenter',()=>{if(bubble)bubble.style.opacity='1'});
+  el.addEventListener('mouseleave',()=>{if(bubble)bubble.style.opacity='0'});
+  el.addEventListener('touchstart',()=>{if(bubble)bubble.style.opacity='1'},{passive:true});
+  el.addEventListener('touchend',()=>{if(bubble)bubble.style.opacity='0'});
+});
+
+function setGender(g){
+  state.gender=g;
+  ['male','female','neutral'].forEach(x=>document.getElementById('g-'+x).classList.toggle('active',x===g));
+  simulate();
+}
+function setActivity(a){
+  state.activity=a;
+  ['low','moderate','high'].forEach(x=>document.getElementById('act-'+x).classList.toggle('active',x===a));
+  simulate();
+}
+function setTime(w,btn){
+  state.weeks=w;
+  document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.style.transform='scale(0.95)';
+  setTimeout(()=>btn.style.transform='',150);
+  startAnimation();
+}
+['father','mother','grandfather','grandmother'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',e=>{
+    state[id]=e.target.value;
+    onGeneChange(id);
+  });
+});
+function onGeneChange(rel){
+  state[rel]=document.getElementById(rel).value;
+  // pulse canvas
+  const c=document.getElementById('canvas-a');
+  c.classList.remove('pulsing');
+  void c.offsetWidth;
+  c.classList.add('pulsing');
+  setTimeout(()=>c.classList.remove('pulsing'),800);
+  simulate();
+}
+
+function toggleCompare(){
+  state.compare=!state.compare;
+  const pill=document.getElementById('compare-pill');
+  pill.classList.toggle('on',state.compare);
+  const wrap=document.getElementById('person-b-wrap');
+  const cardB=document.getElementById('dist-card-b');
+  const insight=document.getElementById('compare-insight');
+  if(state.compare){
+    wrap.style.display='flex';
+    wrap.style.opacity='0';
+    wrap.style.transform='translateX(20px)';
+    setTimeout(()=>{wrap.style.opacity='1';wrap.style.transform='translateX(0)'},50);
+    cardB.style.display='block';
+    insight.style.display='block';
+    document.getElementById('heatmap-label-a').style.display='block';
+    document.getElementById('label-a').textContent='You (Your Genetics)';
+  } else {
+    wrap.style.opacity='0';
+    wrap.style.transform='translateX(20px)';
+    setTimeout(()=>{wrap.style.display='none'},400);
+    cardB.style.display='none';
+    insight.style.display='none';
+    document.getElementById('heatmap-label-a').style.display='none';
+    document.getElementById('label-a').textContent='Your Body';
+  }
+  simulate();
+}
+
+function setTab(t,btn){
+  document.getElementById('tab-output').style.display=t==='output'?'block':'none';
+  document.getElementById('tab-guide').style.display=t==='guide'?'block':'none';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(t==='guide') requestAnimationFrame(drawGuide);
+}
+
+// ===== SIMULATION MATH =====
+function computeGeneticWeights(s){
+  const base={visceral:25,subcutaneous:40,gluteofemoral:25,ectopic:10};
+  const weights={father:0.3,mother:0.3,grandfather:0.2,grandmother:0.2};
+  const boost={visceral:0,subcutaneous:0,gluteofemoral:0,ectopic:0};
+  ['father','mother','grandfather','grandmother'].forEach(rel=>{
+    boost[s[rel]]+=weights[rel]*100;
+  });
+  Object.keys(base).forEach(t=>{base[t]+=boost[t]});
+  const total=Object.values(base).reduce((a,b)=>a+b,0);
+  Object.keys(base).forEach(t=>{base[t]=base[t]/total*100});
+  return base;
+}
+
+function computeFatGain(s,overrideGenes){
+  const tdee=s.gender==='female'
+    ?(447.6+9.25*s.weight+3.1*s.height-4.33*s.age)
+    :(88.4+13.4*s.weight+4.8*s.height-5.68*s.age);
+  const actMult={low:1.2,moderate:1.55,high:1.725};
+  const surplus=s.calories-tdee*actMult[s.activity];
+  const totalFat=Math.max(0,(surplus*7/7700)*s.weeks);
+  const genes=overrideGenes||computeGeneticWeights(s);
+  const ageBoost=s.age>40?1+(s.age-40)*0.012:1;
+  const genderGlu=s.gender==='female'?1.25:0.82;
+  const dist={
+    visceral:genes.visceral*ageBoost,
+    subcutaneous:genes.subcutaneous,
+    gluteofemoral:genes.gluteofemoral*genderGlu,
+    ectopic:genes.ectopic
+  };
+  const tot=Object.values(dist).reduce((a,b)=>a+b,0);
+  Object.keys(dist).forEach(k=>{dist[k]=dist[k]/tot*100});
+  return{totalFat,dist,surplus,bmi:s.weight/((s.height/100)**2)};
+}
+
+function getPersonBGenes(){
+  return{visceral:55,subcutaneous:22,gluteofemoral:14,ectopic:9};
+}
+
+// ===== ANIMATED SIMULATION =====
+function startAnimation(){
+  const res=computeFatGain(state);
+  targetDist={...res.dist};
+  animProgress=0;
+  if(animFrame) cancelAnimationFrame(animFrame);
+  animateStep();
+}
+
+function lerp(a,b,t){return a+(b-a)*t}
+function easeOut(t){return 1-Math.pow(1-t,3)}
+
+function animateStep(){
+  animProgress=Math.min(1,animProgress+0.04);
+  const e=easeOut(animProgress);
+  currentDist.visceral=lerp(currentDist.visceral,targetDist.visceral,e);
+  currentDist.subcutaneous=lerp(currentDist.subcutaneous,targetDist.subcutaneous,e);
+  currentDist.gluteofemoral=lerp(currentDist.gluteofemoral,targetDist.gluteofemoral,e);
+  currentDist.ectopic=lerp(currentDist.ectopic,targetDist.ectopic,e);
+  const res=computeFatGain(state);
+  drawBody('canvas-a',currentDist,res.totalFat*animProgress,state.gender,false);
+  if(animProgress<1){
+    animFrame=requestAnimationFrame(animateStep);
+  } else {
+    renderBars('bars-a',currentDist,res.totalFat);
+    renderRisk('risk-a',currentDist);
+    document.getElementById('total-fat-a').textContent=res.totalFat.toFixed(2)+' kg';
+    document.getElementById('bmi-val').textContent=res.bmi.toFixed(1);
+  }
+}
+
+function simulate(){
+  const res=computeFatGain(state);
+  targetDist={...res.dist};
+  currentDist={...res.dist};
+  animProgress=1;
+  drawBody('canvas-a',res.dist,res.totalFat,state.gender,false);
+  renderBars('bars-a',res.dist,res.totalFat);
+  renderRisk('risk-a',res.dist);
+  document.getElementById('total-fat-a').textContent=res.totalFat.toFixed(2)+' kg';
+  document.getElementById('bmi-val').textContent=res.bmi.toFixed(1);
+  if(state.compare){
+    const bGenes=getPersonBGenes();
+    const resB=computeFatGain(state,bGenes);
+    drawBody('canvas-b',resB.dist,resB.totalFat,state.gender,true);
+    renderBars('bars-b',resB.dist,resB.totalFat);
+    renderRisk('risk-b',resB.dist);
+    typeInsight(res.dist,resB.dist);
+  }
+}
+
+// ===== RENDER BARS =====
+function renderBars(id,dist,totalFat){
+  const c=document.getElementById(id);
+  if(!c) return;
+  const types=[
+    {key:'visceral',label:'Visceral Fat',color:'var(--vis)'},
+    {key:'subcutaneous',label:'Subcutaneous Fat',color:'var(--sub)'},
+    {key:'gluteofemoral',label:'Gluteofemoral Fat',color:'var(--glu)'},
+    {key:'ectopic',label:'Ectopic Fat',color:'var(--ect)'},
+  ];
+  c.innerHTML=types.map(t=>`
+    <div class="fat-bar-row">
+      <div class="fat-bar-label">
+        <span style="color:${t.color};font-weight:500;font-size:0.78rem">${t.label}</span>
+        <span style="font-size:0.75rem;color:var(--brown-mid)">${dist[t.key].toFixed(1)}% · ${(totalFat*dist[t.key]/100).toFixed(2)} kg</span>
+      </div>
+      <div class="fat-bar-track">
+        <div class="fat-bar-fill" style="width:0%;background:${t.color}" data-target="${dist[t.key]}"></div>
+      </div>
+    </div>
+  `).join('');
+  setTimeout(()=>{
+    c.querySelectorAll('.fat-bar-fill').forEach(el=>{
+      el.style.width=el.dataset.target+'%';
+    });
+  },50);
+}
+
+function renderRisk(id,dist){
+  const el=document.getElementById(id);if(!el) return;
+  const v=dist.visceral;
+  const risk=v>45?'high':v>30?'moderate':'low';
+  const labels={low:'Low Risk',moderate:'Moderate Risk',high:'High Risk'};
+  const icons={low:'✅',moderate:'⚠️',high:'🚨'};
+  el.innerHTML=`<span class="risk-badge risk-${risk}">${icons[risk]} ${labels[risk]} — Visceral at ${v.toFixed(1)}%</span>`;
+}
+
+// ===== TYPING ANIMATION =====
+let typeTimer=null;
+function typeInsight(distA,distB){
+  const diff=(distB.visceral-distA.visceral).toFixed(1);
+  const text=`Based on your genetic profile, Person B accumulates <span class="hl">+${Math.abs(diff)}% more visceral fat</span> than you over ${state.weeks} weeks — with an identical lifestyle. This mirrors twin-study findings showing <span class="hl">40–60% heritability</span> in regional fat distribution (Bouchard et al.). Their elevated visceral fraction raises metabolic risk even at the <span class="hl">same total body weight</span>.`;
+  const el=document.getElementById('insight-text');
+  el.innerHTML='<span class="cursor"></span>';
+  if(typeTimer) clearTimeout(typeTimer);
+  let i=0;
+  const stripped=text.replace(/<[^>]*>/g,'');
+  // inject full HTML after brief delay for effect
+  typeTimer=setTimeout(()=>{el.innerHTML=text;},400);
+}
+
+// ===== 2D BODY DRAWING (ENHANCED) =====
+function drawBody(canvasId,dist,totalFat,gender,isB){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const vis=dist.visceral/100;
+  const sub=dist.subcutaneous/100;
+  const glu=dist.gluteofemoral/100;
+  const ect=dist.ectopic/100;
+  const gain=Math.min(totalFat,5);
+  const cx=W/2;
+  const skin='#D4A58A';
+  const skinD='#C8946A';
+
+  // AMBIENT SHADOW
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx,H-12,30+gain*5,8,0,0,Math.PI*2);
+  ctx.fillStyle='rgba(75,46,43,0.12)';ctx.fill();
+  ctx.restore();
+
+  // LOWER LEGS
+  [-1,1].forEach(s=>{
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(cx+s*20,H-55,10,26,0,0,Math.PI*2);
+    ctx.fillStyle=skinD;ctx.fill();ctx.restore();
+  });
+
+  // THIGHS with gluteofemoral
+  const thighW=16+glu*gain*14+(gender==='female'?4:0);
+  [-1,1].forEach(s=>{
+    // glu layer
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(cx+s*20,H-130,thighW+glu*gain*12,40,0,0,Math.PI*2);
+    const gluG=ctx.createRadialGradient(cx+s*20,H-130,0,cx+s*20,H-130,thighW+glu*gain*12);
+    gluG.addColorStop(0,`rgba(212,165,90,${0.1+glu*0.5})`);
+    gluG.addColorStop(1,`rgba(212,165,90,0)`);
+    ctx.fillStyle=gluG;ctx.fill();ctx.restore();
+    // base
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(cx+s*20,H-130,thighW,38,0,0,Math.PI*2);
+    ctx.fillStyle=skinD;ctx.fill();ctx.restore();
+  });
+
+  // HIPS
+  const hipW=36+glu*gain*18+(gender==='female'?10:0);
+  ctx.save();
+  const hipG=ctx.createRadialGradient(cx,H-165,0,cx,H-165,hipW+10);
+  hipG.addColorStop(0,`rgba(212,165,90,${0.15+glu*0.45})`);
+  hipG.addColorStop(1,'rgba(212,165,90,0)');
+  ctx.beginPath();ctx.ellipse(cx,H-165,hipW+10,22,0,0,Math.PI*2);
+  ctx.fillStyle=hipG;ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx,H-165,hipW,20,0,0,Math.PI*2);
+  ctx.fillStyle=skin;ctx.fill();ctx.restore();
+
+  // TORSO
+  const torsoW=44+sub*gain*16;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx-torsoW,105);
+  ctx.bezierCurveTo(cx-torsoW-8,150,cx-torsoW-4,H-175,cx-24,H-168);
+  ctx.lineTo(cx+24,H-168);
+  ctx.bezierCurveTo(cx+torsoW-4,H-175,cx+torsoW+8,150,cx+torsoW,105);
+  ctx.closePath();
+  ctx.fillStyle=skin;ctx.fill();ctx.restore();
+
+  // SUBCUTANEOUS layer on torso
+  if(sub>0.1){
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx-torsoW-sub*gain*10,108);
+    ctx.bezierCurveTo(cx-torsoW-12,155,cx-torsoW-6,H-172,cx-24,H-165);
+    ctx.lineTo(cx+24,H-165);
+    ctx.bezierCurveTo(cx+torsoW-6,H-172,cx+torsoW+12,155,cx+torsoW+sub*gain*10,108);
+    ctx.closePath();
+    const subG=ctx.createLinearGradient(cx-torsoW-15,0,cx+torsoW+15,0);
+    subG.addColorStop(0,`rgba(90,158,160,${sub*0.4})`);
+    subG.addColorStop(0.5,`rgba(90,158,160,${sub*0.15})`);
+    subG.addColorStop(1,`rgba(90,158,160,${sub*0.4})`);
+    ctx.fillStyle=subG;ctx.fill();ctx.restore();
+  }
+
+  // VISCERAL BELLY
+  const bellyR=24+vis*gain*24;
+  ctx.save();
+  const bellyG=ctx.createRadialGradient(cx,H-185,0,cx,H-185,bellyR+10);
+  bellyG.addColorStop(0,`rgba(232,116,90,${0.3+vis*0.6})`);
+  bellyG.addColorStop(0.6,`rgba(232,116,90,${0.1+vis*0.3})`);
+  bellyG.addColorStop(1,'rgba(232,116,90,0)');
+  ctx.beginPath();ctx.ellipse(cx,H-185,bellyR+10,bellyR*0.9+8,0,0,Math.PI*2);
+  ctx.fillStyle=bellyG;ctx.fill();ctx.restore();
+
+  // HEATMAP DIFF for compare B
+  if(isB){
+    ctx.save();
+    const hm=ctx.createRadialGradient(cx,H-185,0,cx,H-185,bellyR+20);
+    hm.addColorStop(0,`rgba(232,60,60,${vis*0.5})`);
+    hm.addColorStop(1,'rgba(232,60,60,0)');
+    ctx.beginPath();ctx.ellipse(cx,H-185,bellyR+20,bellyR+15,0,0,Math.PI*2);
+    ctx.fillStyle=hm;ctx.fill();
+    // pulse ring
+    ctx.beginPath();ctx.ellipse(cx,H-185,bellyR+8,bellyR+6,0,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(232,60,60,${0.4+Math.sin(Date.now()/400)*0.2})`;
+    ctx.lineWidth=2;ctx.stroke();ctx.restore();
+  }
+
+  // ARMS
+  const armW=11+sub*gain*5;
+  [-1,1].forEach(s=>{
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(cx+s*(torsoW+armW),148,armW+sub*gain*6,48,s*0.12,0,Math.PI*2);
+    const armG=ctx.createRadialGradient(cx+s*(torsoW+armW),148,0,cx+s*(torsoW+armW),148,armW+sub*gain*6);
+    armG.addColorStop(0,skin);armG.addColorStop(1,skinD);
+    ctx.fillStyle=armG;ctx.fill();
+    if(sub>0.15){
+      ctx.beginPath();ctx.ellipse(cx+s*(torsoW+armW),148,armW+sub*gain*9,50,s*0.12,0,Math.PI*2);
+      ctx.fillStyle=`rgba(90,158,160,${sub*0.3})`;ctx.fill();
+    }
+    ctx.restore();
+  });
+
+  // ECTOPIC (liver glow)
+  if(ect>0.08){
+    ctx.save();
+    const ectG=ctx.createRadialGradient(cx+16,H-205,0,cx+16,H-205,14+ect*25);
+    ectG.addColorStop(0,`rgba(192,90,128,${ect*2.5})`);
+    ectG.addColorStop(1,'rgba(192,90,128,0)');
+    ctx.beginPath();ctx.ellipse(cx+16,H-205,14+ect*22,9+ect*14,0.35,0,Math.PI*2);
+    ctx.fillStyle=ectG;ctx.fill();ctx.restore();
+  }
+
+  // NECK
+  ctx.save();
+  ctx.beginPath();ctx.ellipse(cx,90,9,14,0,0,Math.PI*2);
+  ctx.fillStyle=skin;ctx.fill();ctx.restore();
+
+  // HEAD
+  ctx.save();
+  ctx.beginPath();ctx.ellipse(cx,60,20,24,0,0,Math.PI*2);
+  const headG=ctx.createRadialGradient(cx-5,55,0,cx,60,24);
+  headG.addColorStop(0,'#E0B898');headG.addColorStop(1,skinD);
+  ctx.fillStyle=headG;ctx.fill();ctx.restore();
+
+  // EYES
+  [-1,1].forEach(s=>{
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(cx+s*7,57,3,2.5,0,0,Math.PI*2);
+    ctx.fillStyle='rgba(46,26,23,0.7)';ctx.fill();ctx.restore();
+  });
+
+  // MINI LEGEND
+  const leg=[
+    {c:'rgba(232,116,90,0.8)',l:'Visceral'},
+    {c:'rgba(90,158,160,0.7)',l:'Subcutaneous'},
+    {c:'rgba(212,165,90,0.8)',l:'Gluteofemoral'},
+    {c:'rgba(192,90,128,0.75)',l:'Ectopic'},
+  ];
+  leg.forEach((item,i)=>{
+    ctx.save();
+    ctx.beginPath();ctx.arc(12,H-60+i*13,4,0,Math.PI*2);
+    ctx.fillStyle=item.c;ctx.fill();
+    ctx.fillStyle='rgba(75,46,43,0.75)';
+    ctx.font='9px DM Sans';
+    ctx.fillText(item.l,20,H-57+i*13);
+    ctx.restore();
+  });
+}
+
+// ===== GUIDE CANVAS =====
+function drawGuide(){
+  const c=document.getElementById('guide-canvas');
+  if(!c) return;
+  const ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  const cx=W*0.32,by=H*0.88;
+
+  // body outlines
+  ctx.save();ctx.strokeStyle='#C49A6C';ctx.lineWidth=1.2;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.ellipse(cx,40,18,22,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx,125,42,62,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx,198,32,18,0,0,Math.PI*2);ctx.stroke();
+  [-1,1].forEach(s=>{
+    ctx.beginPath();ctx.ellipse(cx+s*18,248,13,36,0,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(cx+s*18,302,10,22,0,0,Math.PI*2);ctx.stroke();
+  });
+  ctx.setLineDash([]);ctx.restore();
+
+  // visceral fill
+  const vg=ctx.createRadialGradient(cx,130,0,cx,130,32);
+  vg.addColorStop(0,'rgba(232,116,90,0.45)');vg.addColorStop(1,'rgba(232,116,90,0)');
+  ctx.beginPath();ctx.ellipse(cx,130,32,30,0,0,Math.PI*2);
+  ctx.fillStyle=vg;ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx,130,32,30,0,0,Math.PI*2);
+  ctx.strokeStyle='rgba(232,116,90,0.7)';ctx.lineWidth=1.5;ctx.stroke();
+
+  // subcutaneous dashed border
+  ctx.save();ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.ellipse(cx,120,50,68,0,0,Math.PI*2);
+  ctx.strokeStyle='rgba(90,158,160,0.8)';ctx.lineWidth=5;ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+
+  // gluteofemoral
+  [-1,1].forEach(s=>{
+    const gg=ctx.createRadialGradient(cx+s*18,256,0,cx+s*18,256,20);
+    gg.addColorStop(0,'rgba(212,165,90,0.5)');gg.addColorStop(1,'rgba(212,165,90,0)');
+    ctx.beginPath();ctx.ellipse(cx+s*18,256,18,40,0,0,Math.PI*2);
+    ctx.fillStyle=gg;ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+s*18,256,18,40,0,0,Math.PI*2);
+    ctx.strokeStyle='rgba(212,165,90,0.7)';ctx.lineWidth=1.2;ctx.stroke();
+  });
+
+  // ectopic
+  const eg=ctx.createRadialGradient(cx+15,115,0,cx+15,115,14);
+  eg.addColorStop(0,'rgba(192,90,128,0.6)');eg.addColorStop(1,'rgba(192,90,128,0)');
+  ctx.beginPath();ctx.ellipse(cx+15,115,13,8,0.4,0,Math.PI*2);
+  ctx.fillStyle=eg;ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+15,115,13,8,0.4,0,Math.PI*2);
+  ctx.strokeStyle='rgba(192,90,128,0.8)';ctx.lineWidth=1.2;ctx.stroke();
+
+  // labels
+  const lbls=[
+    {sx:cx+15,sy:112,tx:W*0.58,ty:80,c:'rgba(192,90,128,0.9)',t:['Ectopic fat','(liver)']},
+    {sx:cx+33,sy:132,tx:W*0.58,ty:130,c:'rgba(232,116,90,0.9)',t:['Visceral fat','(organ surround)']},
+    {sx:cx+52,sy:145,tx:W*0.58,ty:175,c:'rgba(90,158,160,0.9)',t:['Subcutaneous','(under skin)']},
+    {sx:cx+30,sy:258,tx:W*0.58,ty:242,c:'rgba(212,165,90,0.9)',t:['Gluteofemoral','(hips & thighs)']},
+  ];
+  lbls.forEach(lb=>{
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(lb.sx,lb.sy);ctx.lineTo(lb.tx-8,lb.ty);
+    ctx.strokeStyle=lb.c;ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle=lb.c;ctx.font='500 11px DM Sans';
+    lb.t.forEach((line,i)=>ctx.fillText(line,lb.tx,lb.ty+i*14));
+    ctx.restore();
+  });
+}
+
+// ===== STORY BODIES =====
+function drawStoryBody(canvasId,visPct,gluPct){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2,skin='#D4A58A',skinD='#C8946A';
+  // simple scaled body
+  ctx.save();ctx.beginPath();ctx.ellipse(cx,32,12,15,0,0,Math.PI*2);ctx.fillStyle=skin;ctx.fill();ctx.restore();
+  ctx.save();ctx.beginPath();ctx.ellipse(cx,55,6,8,0,0,Math.PI*2);ctx.fillStyle=skin;ctx.fill();ctx.restore();
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx-26,65);ctx.bezierCurveTo(cx-30,95,cx-28,130,cx-14,133);
+  ctx.lineTo(cx+14,133);ctx.bezierCurveTo(cx+28,130,cx+30,95,cx+26,65);
+  ctx.closePath();ctx.fillStyle=skin;ctx.fill();ctx.restore();
+  // visceral
+  const bR=14+visPct*22;
+  ctx.save();
+  const vg=ctx.createRadialGradient(cx,105,0,cx,105,bR);
+  vg.addColorStop(0,`rgba(232,116,90,${0.2+visPct*0.7})`);vg.addColorStop(1,'rgba(232,116,90,0)');
+  ctx.beginPath();ctx.ellipse(cx,105,bR,bR*0.9,0,0,Math.PI*2);ctx.fillStyle=vg;ctx.fill();ctx.restore();
+  // hips
+  const hW=18+gluPct*14;
+  ctx.save();ctx.beginPath();ctx.ellipse(cx,138,hW,12,0,0,Math.PI*2);
+  ctx.fillStyle=`rgba(212,165,90,${0.2+gluPct*0.5})`;ctx.fill();ctx.restore();
+  // thighs
+  [-1,1].forEach(s=>{
+    const tW=8+gluPct*10;
+    ctx.save();ctx.beginPath();ctx.ellipse(cx+s*11,168,tW,22,0,0,Math.PI*2);
+    ctx.fillStyle=skinD;ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+s*11,168,tW+gluPct*8,23,0,0,Math.PI*2);
+    ctx.fillStyle=`rgba(212,165,90,${gluPct*0.4})`;ctx.fill();ctx.restore();
+    ctx.save();ctx.beginPath();ctx.ellipse(cx+s*11,202,6,14,0,0,Math.PI*2);ctx.fillStyle=skinD;ctx.fill();ctx.restore();
+  });
+}
+
+// ===== INIT =====
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    document.querySelector('.hero-h1').classList.add('visible');
+    document.querySelector('.hero-sub').classList.add('visible');
+    document.querySelector('.hero-cta').classList.add('visible');
+  },200);
+  checkVisible();
+  simulate();
+  drawStoryBody('story-canvas-a',0.85,0.12);
+  drawStoryBody('story-canvas-b',0.1,0.75);
+});
+
+window.addEventListener('scroll',checkVisible);
+
+// Re-pulse compare B for heatmap animation
+setInterval(()=>{
+  if(state.compare){
+    const res=computeFatGain(state);
+    const bGenes=getPersonBGenes();
+    const resB=computeFatGain(state,bGenes);
+    drawBody('canvas-b',resB.dist,resB.totalFat,state.gender,true);
+  }
+},600);
+</script>
+</body>
+</html>
